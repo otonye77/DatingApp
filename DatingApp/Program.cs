@@ -1,4 +1,3 @@
-
 using DatingApp.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,15 +10,25 @@ namespace DatingApp
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            // Configure DbContext with SQLite
             builder.Services.AddDbContext<DataContext>(opt =>
             {
                 opt.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"));
+            });
+
+            // Add CORS services
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowSpecificOrigin",
+                    builder => builder
+                        .WithOrigins("http://localhost:4200") // Replace with your frontend URL
+                        .AllowAnyMethod()
+                        .AllowAnyHeader());
             });
 
             var app = builder.Build();
@@ -33,8 +42,10 @@ namespace DatingApp
 
             app.UseHttpsRedirection();
 
-            app.UseAuthorization();
+            // Use the CORS middleware
+            app.UseCors("AllowSpecificOrigin");
 
+            app.UseAuthorization();
 
             app.MapControllers();
 
