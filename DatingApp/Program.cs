@@ -1,16 +1,21 @@
 using DatingApp.Data;
 using DatingApp.Interfaces;
+using DatingApp.Middleware;
 using DatingApp.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using System;
 using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace DatingApp
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -48,8 +53,6 @@ namespace DatingApp
                 };
             });
 
-           
-
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -58,6 +61,8 @@ namespace DatingApp
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
+
+            app.UseMiddleware<ExceptionMiddleware>();
 
             app.UseHttpsRedirection();
 
@@ -69,7 +74,21 @@ namespace DatingApp
 
             app.MapControllers();
 
-            app.Run();
+            using var scope = app.Services.CreateScope();
+            var services = scope.ServiceProvider;
+            try
+            {
+                var context = services.GetRequiredService<DataContext>();
+                await context.Database.MigrateAsync();
+                await Seed.SeedUsers(context);
+            }
+            catch (Exception ex)
+            {
+                var logger = services.GetRequiredService<ILogger<Program>>();
+                logger.LogError(ex, "An error occurred during migrations");
+            }
+
+            await app.RunAsync();
         }
     }
 }
