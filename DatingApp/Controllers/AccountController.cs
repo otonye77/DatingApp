@@ -29,7 +29,7 @@ namespace DatingApp.Controllers
                 return BadRequest("Username is taken");
             }
             using var hmac = new HMACSHA512();
-            var user = new AppUser
+            var user = new AppUser   
             {
                 UserName = registerDto.UserName.ToLower(),
                 PasswordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(registerDto.Password)),
